@@ -1,5 +1,6 @@
 package plants;
 
+import itumulator.simulator.WorldObject;
 import itumulator.world.Location;
 import itumulator.world.World;
 import java.util.*;
