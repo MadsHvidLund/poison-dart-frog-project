@@ -1,64 +1,60 @@
 package plants;
 
+import itumulator.simulator.WorldObject;
 import itumulator.world.Location;
+import itumulator.world.NonBlocking;
 import itumulator.world.World;
+
 import java.util.*;
 
 
-public class Grass extends WorldObject {
-    public static Set<Location> grassesLoc = new HashSet<Location>();
-    public static Set<Grass> grasses= new HashSet<Grass>();
-    public double growSpeed = 0.1;
-    public int maxGrass = 20;
-    public Grass(){
+public class Grass extends WorldObject implements NonBlocking {
+    private static final Random rand = new Random();
+    private static final double GROW_CHANCE = 0.1;
+
+    public Grass() {
     }
 
     public static void spawn(int amount, World world) {
-        Random rand = new Random();
+        int size = world.getSize();
         int placed = 0;
         while (placed < amount) {
-            Grass grass = new Grass();
-            int size = world.getSize();
-            int x = rand.nextInt(size);
-            int y = rand.nextInt(size);
-            Location loc = new Location(x, y);
-
-            if (world.isTileEmpty(loc)) {
-                world.setTile(loc, grass);
-                grassesLoc.add(loc);
-                grasses.add(grass);
+            Location loc = new Location(rand.nextInt(size), rand.nextInt(size));
+            if (plant(world, loc)) {
                 placed++;
             }
         }
     }
 
-    public Set<Location> getGrassesLoc() {
-        return grassesLoc;
-    }
-    public Set<Grass> getGrasses() {
-        return grasses;
-    }
-
     public void grow(World world) {
-        Random rand = new Random();
+        if (rand.nextDouble() >= GROW_CHANCE) {
+            return;
+        }
 
-        if (grasses.size() < maxGrass) {
-               if(rand.nextDouble() < growSpeed) {
-                    Location current = world.getLocation(this);
-                    Set<Location> neighbours = world.getEmptySurroundingTiles(current);
-                    if (!neighbours.isEmpty()) {
-                        List<Location> list = new ArrayList<>(neighbours);
-                        Location target = list.get(rand.nextInt(list.size()));
-                        Grass grass = new Grass();
-                        world.setTile(target, grass);
-                        grasses.add(grass);
-                        grassesLoc.add(target);
-                    }
-                }
+        List<Location> freeTiles = new ArrayList<>();
+        for (Location loc : world.getSurroundingTiles(world.getLocation(this))) {
+            if (!world.containsNonBlocking(loc)) {
+                freeTiles.add(loc);
             }
+        }
 
+        if (freeTiles.isEmpty()) {
+            return;
+        }
+
+        Location target = freeTiles.get(rand.nextInt(freeTiles.size()));
+        plant(world, target);
     }
-    
+
+    private static boolean plant(World world, Location loc) {
+        if (world.containsNonBlocking(loc)) {
+            return false;
+        }
+        world.setTile(loc, new Grass());
+        return true;
+    }
+
+    @Override
     public void act(World world) {
         grow(world);
     }
